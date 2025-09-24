@@ -2485,6 +2485,11 @@ class GPUModelRunner(LoRAModelRunnerMixin, KVConnectorModelRunnerMixin):
             ):
                 cudagraph_runtime_mode = CUDAGraphMode.NONE
 
+        # This is currently to get around the assert in the DPMetadata
+        # where it wants `num_tokens_across_dp` to align with `num_tokens`
+        if ubatch_slices is not None:
+            num_input_tokens = ubatch_slices[0].num_tokens
+
         # Run the model.
         # Use persistent buffers for CUDA graphs.
         with (
