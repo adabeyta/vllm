@@ -194,6 +194,28 @@ def test_fp8_kv_scale_compile(compilation_mode: int):
     run_model(compilation_mode, model, **model_kwargs)
 
 
+def test_inductor_graph_partition_attn_fusion(caplog_vllm):
+    if not is_torch_equal_or_newer("2.9.0.dev"):
+        pytest.skip("inductor graph partition is only available "
+                    "in PyTorch 2.9+")
+
+    model = "nvidia/Llama-4-Scout-17B-16E-Instruct-FP8"
+    compilation_config = CompilationConfig(
+        mode=CompilationMode.VLLM_COMPILE,
+        use_inductor_graph_partition=True,
+        cudagraph_mode=CUDAGraphMode.PIECEWISE,
+        custom_ops=["+quant_fp8"],
+        pass_config=PassConfig(enable_attn_fusion=True, enable_noop=True),
+    )
+    model_kwargs = {
+        "quantization": "fp8",
+        "kv_cache_dtype": "fp8_e4m3",
+        "calculate_kv_scales": True,
+        "max_model_len": 512,
+    }
+    run_model(compilation_config, model, **model_kwargs)
+
+
 def run_model(compile_config: int | CompilationConfig, model: str, **model_kwargs):
     compilation_config = (
         compile_config
